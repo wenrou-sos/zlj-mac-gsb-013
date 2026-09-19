@@ -1,0 +1,35 @@
+# 语法版本兼容：docker compose v2 / docker-compose v1 均可
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: runway-db
+    environment:
+      POSTGRES_USER: runway
+      POSTGRES_PASSWORD: runway
+      POSTGRES_DB: runway_platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U runway -d runway_platform"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: runway-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://runway:runway@db:5432/runway_platform
+      STATIC_DIR: /app/static
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:
